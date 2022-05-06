@@ -1,0 +1,19 @@
+apiVersion: cluster.x-k8s.io/v1beta1
+kind: Cluster
+metadata:
+  name: hello-kind
+spec:
+  infrastructureRef:
+    apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+    kind: KindCluster
+    name: hello-kind
+---
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1
+kind: KindCluster
+metadata:
+  name: hello-kind
+spec:
+  networking:
+    apiServerAddress: "192.168.0.42"
+  nodes:
+  - role: control-plane

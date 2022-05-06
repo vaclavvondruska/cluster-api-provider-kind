@@ -1,0 +1,143 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.8.0
+  creationTimestamp: null
+  name: kindclusters.infrastructure.cluster.x-k8s.io
+spec:
+  group: infrastructure.cluster.x-k8s.io
+  names:
+    kind: KindCluster
+    listKind: KindClusterList
+    plural: kindclusters
+    singular: kindcluster
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: KindCluster is the Schema for the kindclusters API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: KindClusterSpec defines the desired state of KindCluster
+            properties:
+              controlPlaneEndpoint:
+                description: KindClusterControlPlaneEndpoint defines host and port
+                  of the cluster control plane
+                properties:
+                  host:
+                    type: string
+                  port:
+                    type: integer
+                type: object
+              featureGates:
+                additionalProperties:
+                  type: boolean
+                type: object
+              networking:
+                description: KindClusterNetworking defines a networking configuration
+                  of a Kind cluster
+                properties:
+                  apiServerAddress:
+                    type: string
+                  apiServerPort:
+                    type: integer
+                  disableDefaultCNI:
+                    type: boolean
+                  ipFamily:
+                    type: string
+                  kubeProxyMode:
+                    type: string
+                  podSubnet:
+                    type: string
+                  serviceSubnet:
+                    type: string
+                type: object
+              nodes:
+                items:
+                  description: KindClusterNode defines configuration a node in a Kind
+                    cluster
+                  properties:
+                    extraMounts:
+                      items:
+                        description: KindClusterExtraMount defines configuration of
+                          extra mounts in KindClusterNode
+                        properties:
+                          containerPath:
+                            type: string
+                          hostPath:
+                            type: string
+                          propagation:
+                            type: string
+                          readOnly:
+                            type: boolean
+                          selinuxRelabel:
+                            type: boolean
+                        type: object
+                      type: array
+                    extraPortMappings:
+                      items:
+                        description: KindClusterExtraPortMapping defines configuration
+                          of extra port mappings in KindClusterNode
+                        properties:
+                          containerPort:
+                            type: integer
+                          hostPort:
+                            type: integer
+                          listenAddress:
+                            type: string
+                          protocol:
+                            type: string
+                        type: object
+                      type: array
+                    image:
+                      type: string
+                    kubeadmConfigPatches:
+                      items:
+                        type: string
+                      type: array
+                    role:
+                      type: string
+                  type: object
+                type: array
+              runtimeConfig:
+                additionalProperties:
+                  type: string
+                type: object
+            type: object
+          status:
+            description: KindClusterStatus defines the observed state of KindCluster
+            properties:
+              ready:
+                type: boolean
+              state:
+                description: 'INSERT ADDITIONAL STATUS FIELD - define observed state
+                  of cluster Important: Run "make" to regenerate code after modifying
+                  this file'
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
