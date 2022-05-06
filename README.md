@@ -35,4 +35,4 @@ Run `kubectl apply -f /path/to/project/samples/kind-cluster.yaml
 
 #### Limitations
 
-This guide and the project were only tested on MacOS. It should work on Linux, but it may not work on Windows.
+This guide and the project were only tested on MacOS. It should work on Linux, but it may not work on Windows at the moment.
