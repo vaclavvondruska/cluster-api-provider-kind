@@ -14,6 +14,6 @@ metadata:
   name: hello-kind
 spec:
   networking:
-    apiServerAddress: "192.168.0.42"
+    apiServerAddress: "controlPlaneEndpoint"
   nodes:
   - role: control-plane
