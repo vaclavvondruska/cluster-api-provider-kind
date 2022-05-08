@@ -8,3 +8,4 @@ kind-wrapper-api/kind-cluster-sample-config.yaml
 cluster-api-provider-kind/config/default/manager_env_patch.yaml
 
 kind-wrapper-api/kind-wrapper-api
+samples/kind-cluster-local.yaml

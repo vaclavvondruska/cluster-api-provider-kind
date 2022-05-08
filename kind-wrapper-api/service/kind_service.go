@@ -21,12 +21,12 @@ var KindClusterNotFoundError = errors.New("cluster not found in kind")
 
 // KindService provides information about Kind clusters based on data read from Kind CLI
 type KindService struct {
-	kindClient *kind.Client
+	kindClient kind.Client
 	kubeConfigPath string
 }
 
 // NewKindService creates a new instance of KindService
-func NewKindService(kindClient *kind.Client, kubeConfigPath string) *KindService {
+func NewKindService(kindClient kind.Client, kubeConfigPath string) *KindService {
 	return &KindService{kindClient: kindClient, kubeConfigPath: kubeConfigPath}
 }
 
@@ -52,7 +52,7 @@ func (s *KindService) CreateCluster(spec ClusterConfig) error {
 }
 
 // DeleteCluster calls Kind CLI to delete an existing cluster
-// The deletion is asynchronous, an output is ignored
+// The deletion is asynchronous, the output is ignored
 // Successful deletion can be verified by calling the GetClusterState method
 func (s *KindService) DeleteCluster(name string) {
 	go func(name string) {
@@ -94,7 +94,7 @@ func (s *KindService) GetClusterState(clusterName string) (KindClusterStatus, er
 	return NewKindClusterStatus(KindClusterStateUnknown, ""), KindClusterNotFoundError
 }
 
-func executeAndNotifyCreateCluster(client *kind.Client, spec ClusterConfig, chanCreate chan <- int) {
+func executeAndNotifyCreateCluster(client kind.Client, spec ClusterConfig, chanCreate chan <- int) {
 	specStr, err := yaml.Marshal(spec)
 	log.Printf("Creating cluster from %s\n", specStr)
 	if err != nil {
@@ -110,7 +110,7 @@ func executeAndNotifyCreateCluster(client *kind.Client, spec ClusterConfig, chan
 	close(chanCreate)
 }
 
-func awaitCluster(client *kind.Client, name string, ticker *time.Ticker, chanCreate <- chan int, chanWait chan <- int) {
+func awaitCluster(client kind.Client, name string, ticker *time.Ticker, chanCreate <- chan int, chanWait chan <- int) {
 	for {
 		select {
 		case result := <-chanCreate:
@@ -119,7 +119,12 @@ func awaitCluster(client *kind.Client, name string, ticker *time.Ticker, chanCre
 			close(chanWait)
 			return
 		case <-ticker.C:
-			if clusters, err := client.GetClusters(); err == nil {
+			clusters, err := client.GetClusters()
+			if err != nil {
+				chanWait <- kindClusterCreationResultFailure
+				close(chanWait)
+				return
+			} else {
 				_, ok := clusters[name]
 				if ok {
 					log.Printf("Cluster %s ready\n", name)
