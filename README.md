@@ -30,4 +30,9 @@ These guide provides instructions how to set up the project, push it to a local 
 Once the infrastructure provider is deployed and the API wrapper running, it should be possible to create KindCluster resources.
 
 #### Create a cluster
+
 Run `kubectl apply -f /path/to/project/samples/kind-cluster.yaml
+
+#### Limitations
+
+This guide and the project were only tested on MacOS. It should work on Linux, but it may not work on Windows at the moment.
