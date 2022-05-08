@@ -2,6 +2,7 @@ package service
 
 import (
 	"errors"
+	"fmt"
 	"gopkg.in/yaml.v2"
 	"kind-wrapper-api/kindclient"
 	"kind-wrapper-api/kubernetes"
@@ -9,7 +10,11 @@ import (
 	"time"
 )
 
-const kindClusterContextPrefix = "kind-"
+const (
+	kindClusterContextPrefix = "kind-"
+	kindClusterCreationResultSuccess = 0
+	kindClusterCreationResultFailure = 1
+)
 
 // KindClusterNotFoundError is returned by the GetClusterState method in case the cluster does not exist
 var KindClusterNotFoundError = errors.New("cluster not found in kind")
@@ -26,35 +31,21 @@ func NewKindService(kubeConfigPath string) *KindService {
 
 // CreateCluster creates a new Kind cluster from the provided specifications
 // The method waits for the cluster to appear in the output of "kind get clusters"
+// or for the creation of the cluster to complete - whichever comes first
 // An error is returned in case the cluster could not be created
 func (s *KindService) CreateCluster(spec ClusterConfig) error {
-	done := make(chan int)
-	ticker := time.NewTicker(500 * time.Millisecond)
-	go func(spec ClusterConfig, done chan int) {
-		err := executeCreateCluster(spec)
-		if err != nil {
-			done <- 1
-		}
-	}(spec, done)
-	go func(clusterName string, done chan int) {
-		for {
-			select {
-			case <-done:
-				return
-			case <-ticker.C:
-				if clusters, err := kindclient.GetClusters(); err == nil {
-					_, ok := clusters[clusterName]
-					if ok {
-						done <- 0
-					}
-				}
-			}
-		}
-	}(spec.Name, done)
-	result := <-done
-	ticker.Stop()
-	if result > 0 {
-		return errors.New("failed to create cluster")
+	createResult := make(chan int, 1)
+	waitResult := make(chan int, 1)
+	waitTicker := time.NewTicker(500 * time.Millisecond)
+
+	go waitForCluster(spec.Name, waitTicker, createResult, waitResult)
+	go executeAndNotifyCreateCluster(spec, createResult)
+
+	result := <-waitResult
+	waitTicker.Stop()
+
+	if result == kindClusterCreationResultFailure {
+		return fmt.Errorf("failed to create cluster %s", spec.Name)
 	}
 	return nil
 }
@@ -102,13 +93,42 @@ func (s *KindService) GetClusterState(clusterName string) (KindClusterStatus, er
 	return NewKindClusterStatus(KindClusterStateUnknown, ""), KindClusterNotFoundError
 }
 
-func executeCreateCluster(spec ClusterConfig) error {
+func executeAndNotifyCreateCluster(spec ClusterConfig, createResult chan <- int) {
 	specStr, err := yaml.Marshal(spec)
 	log.Printf("Creating cluster from %s\n", specStr)
 	if err != nil {
-		return err
+		log.Printf("Creation of cluster %s failed\n", spec.Name)
+		createResult <- kindClusterCreationResultFailure
+	} else if err = kindclient.CreateCluster(string(specStr)); err != nil {
+		log.Printf("Creation of cluster %s failed\n", spec.Name)
+		createResult <- kindClusterCreationResultFailure
+	} else {
+		log.Printf("Creation of cluster %s succeeded\n", spec.Name)
+		createResult <- kindClusterCreationResultSuccess
 	}
-	return kindclient.CreateCluster(string(specStr))
+	close(createResult)
+}
+func waitForCluster(clusterName string, waitTicker *time.Ticker, createResult <- chan int, waitResult chan <- int) {
+	for {
+		select {
+		case result := <-createResult:
+			log.Printf("Creation of cluster %s finished with status %d\n", clusterName, result)
+			waitResult <- result
+			close(waitResult)
+			return
+		case <-waitTicker.C:
+			if clusters, err := kindclient.GetClusters(); err == nil {
+				_, ok := clusters[clusterName]
+				if ok {
+					log.Printf("Cluster %s ready\n", clusterName)
+					waitResult <- kindClusterCreationResultSuccess
+					close(waitResult)
+					return
+				}
+			}
+			log.Printf("Cluster %s not ready yet\n", clusterName)
+		}
+	}
 }
 
 func kindClusterContextName(clusterName string) string {

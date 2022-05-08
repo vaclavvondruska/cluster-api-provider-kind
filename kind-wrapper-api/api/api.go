@@ -44,7 +44,7 @@ func (api *API) handleCreateClusterAsync(w http.ResponseWriter, req *http.Reques
 	} else {
 		if _, err = api.kindService.GetClusterState(clusterConfig.Name); err == nil {
 			writeResponse(w, http.StatusConflict, fmt.Sprintf("Conflict!\nCluster with the same name already exists: %s", err))
-		} else if err := api.kindService.CreateCluster(clusterConfig); err != nil {
+		} else if err = api.kindService.CreateCluster(clusterConfig); err != nil {
 			writeResponse(w, http.StatusInternalServerError, "Internal Server Error")
 		} else {
 			writeResponse(w, http.StatusOK, "OK")

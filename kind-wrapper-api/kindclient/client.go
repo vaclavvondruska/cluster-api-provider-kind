@@ -37,18 +37,21 @@ func DeleteCluster(name string) error {
 // GetClusters executes the Kind CLI command to get a list of cluster names
 // and converts the output to an array of strings
 func GetClusters() (map[string]bool, error) {
-	clusters := make(map[string]bool)
-
 	cmd := exec.Command("kind", "get", "clusters")
 	output, err := cmd.Output()
 	if err != nil {
-		return clusters, err
+		return make(map[string]bool), err
 	}
 
+	return parseClusterNamesFromCommandOutput(output), nil
+}
+
+func parseClusterNamesFromCommandOutput(output []byte) map[string]bool {
+	clusters := make(map[string]bool)
 	outputStr := strings.Trim(string(output), newLineSeparator)
 	clusterNames := strings.Split(outputStr, newLineSeparator)
 	for _, clusterName := range clusterNames {
 		clusters[clusterName] = true
 	}
-	return clusters, nil
+	return clusters
 }
