@@ -31,7 +31,8 @@ Once the infrastructure provider is deployed and the API wrapper running, it sho
 
 #### Create a cluster
 
-Run `kubectl apply -f /path/to/project/samples/kind-cluster.yaml
+- Open `/path/to/project/samples/kind-cluster.yaml` and update the value of `networking.apiServerAddress` to an existing and reachable host (e.g. the IP address of your local machine)
+- Run `kubectl apply -f /path/to/project/samples/kind-cluster.yaml
 
 #### Limitations
 
