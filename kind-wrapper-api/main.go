@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"kind-wrapper-api/api"
+	"kind-wrapper-api/kind"
 	"kind-wrapper-api/kubernetes"
 	"kind-wrapper-api/service"
 	"os"
@@ -18,8 +19,9 @@ const (
 )
 
 func main() {
+	kindClient := kind.NewClient()
 	kubeConfigPath := kubernetes.GetKubeConfigPath()
-	kindService := service.NewKindService(kubeConfigPath)
+	kindService := service.NewKindService(kindClient, kubeConfigPath)
 
 	host := os.Getenv(apiHostEnvKey)
 	if host == "" {

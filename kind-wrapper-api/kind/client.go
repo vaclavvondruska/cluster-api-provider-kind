@@ -1,4 +1,4 @@
-package kindclient
+package kind
 
 import (
 	"errors"
@@ -10,8 +10,20 @@ import (
 
 const newLineSeparator = "\n"
 
+type execContext = func(name string, arg ...string) *exec.Cmd
+
+// Client implements interaction with Kind CLI
+type Client struct {
+	cmdContext execContext
+}
+
+// NewClient creates a new instance of Client
+func NewClient() *Client {
+	return &Client{cmdContext: exec.Command}
+}
+
 // CreateCluster executes the Kind CLI command to create a new cluster
-func CreateCluster(spec string) error {
+func (c *Client) CreateCluster(spec string) error {
 	if len(spec) == 0 {
 		return errors.New("failed to create cluster - empty spec provided")
 	}
@@ -26,7 +38,7 @@ func CreateCluster(spec string) error {
 }
 
 // DeleteCluster executes the Kind CLI command to delete a cluster
-func DeleteCluster(name string) error {
+func (c *Client) DeleteCluster(name string) error {
 	if len(name) == 0 {
 		return errors.New("failed to delete cluster - empty name provided")
 	}
@@ -36,13 +48,12 @@ func DeleteCluster(name string) error {
 
 // GetClusters executes the Kind CLI command to get a list of cluster names
 // and converts the output to an array of strings
-func GetClusters() (map[string]bool, error) {
+func (c *Client) GetClusters() (map[string]bool, error) {
 	cmd := exec.Command("kind", "get", "clusters")
 	output, err := cmd.Output()
 	if err != nil {
 		return make(map[string]bool), err
 	}
-
 	return parseClusterNamesFromCommandOutput(output), nil
 }
 
