@@ -12,30 +12,16 @@ func TestHelperProcess(t *testing.T) {
 	if os.Getenv("GO_TEST_PROCESS") != "1" {
 		return
 	}
-	isFailureCase := os.Getenv("FAILURE_CASE") == "1"
+	if os.Getenv("FAILURE_CASE") == "1" {
+		_, _ = fmt.Fprintf(os.Stderr, "Failed to execute command")
+		os.Exit(1)
+	}
 	code := 0
 	switch os.Getenv("TEST_CASE") {
-	case "create":
-		if isFailureCase {
-			_, _ = fmt.Fprintf(os.Stderr, "Cluster falied")
-			code = 1
-		} else {
-			_, _ = fmt.Fprintf(os.Stdout, "Cluster ready")
-		}
-	case "delete":
-		if isFailureCase {
-			_, _ = fmt.Fprintf(os.Stderr, "Cluster deletion failed")
-			code = 1
-		} else {
-			_, _ = fmt.Fprintf(os.Stdout, "Cluster deleted")
-		}
+	case "create", "delete":
+		_, _ = fmt.Fprintf(os.Stdout, "Finished successfully")
 	case "get":
-		if isFailureCase {
-			_, _ = fmt.Fprintf(os.Stderr, "Get clusters falied")
-			code = 1
-		} else {
-			_, _ = fmt.Fprintf(os.Stdout, "kind\nkind-2\nkind-3")
-		}
+		_, _ = fmt.Fprintf(os.Stdout, "kind\nkind-2\nkind-3")
 	default:
 		_, _ = fmt.Fprintf(os.Stderr, "Command not found")
 		code = 127
