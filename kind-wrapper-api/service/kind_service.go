@@ -67,40 +67,29 @@ func (s *KindService) DeleteCluster(name string) {
 // KindClusterNotFoundError is returned in case the cluster does not exist
 // A generic error is returned in case the cluster info could not be retrieved
 func (s *KindService) GetClusterState(clusterName string) (KindClusterStatus, error) {
-	contexts, clusterConfigs, err := kubernetes.GetKubeContexts(s.kubeConfigPath)
+	clusterHasNodes, err := s.kindClient.ClusterHasNodes(clusterName)
+	if err != nil || !clusterHasNodes {
+		return NewKindClusterStatus(KindClusterStateUnknown, ""), KindClusterNotFoundError
+	}
+
+	_, clusterConfigs, err := kubernetes.GetKubeContexts(s.kubeConfigPath)
 	if err != nil {
 		return NewKindClusterStatus(KindClusterStateUnknown, ""), err
 	}
-
-	clusters, err := s.kindClient.GetClusters()
-	if err != nil {
-		return NewKindClusterStatus(KindClusterStateUnknown, ""), err
+	clusterConfig, ok := clusterConfigs[kindClusterContextName(clusterName)]
+	if !ok {
+		return NewKindClusterStatus(KindClusterStatePending, ""), nil
 	}
-
-	kindClusterName := kindClusterContextName(clusterName)
-
-	_, clusterNameExists := clusters[clusterName]
-	_, clusterContextExists := contexts[kindClusterName]
-	clusterConfig, clusterConfigExists := clusterConfigs[kindClusterName]
-
-	if clusterNameExists && clusterContextExists && clusterConfigExists {
-		return NewKindClusterStatus(KindClusterStateRunning, clusterConfig.Server), nil
-	} else if clusterNameExists {
-		return NewKindClusterStatus(KindClusterStatePending, ""), err
-	} else if clusterContextExists && clusterConfigExists {
-		return NewKindClusterStatus(KindClusterStateFailed, ""), err
-	}
-
-	return NewKindClusterStatus(KindClusterStateUnknown, ""), KindClusterNotFoundError
+	return NewKindClusterStatus(KindClusterStateRunning, clusterConfig.Server), nil
 }
 
 func executeAndNotifyCreateCluster(client kind.Client, spec ClusterConfig, chanCreate chan <- int) {
-	specStr, err := yaml.Marshal(spec)
-	log.Printf("Creating cluster from %s\n", specStr)
+	specBytes, err := yaml.Marshal(spec)
+	log.Printf("Creating cluster from %s\n", specBytes)
 	if err != nil {
 		log.Printf("Creation of cluster %s failed\n", spec.Name)
 		chanCreate <- kindClusterCreationResultFailure
-	} else if err = client.CreateCluster(string(specStr)); err != nil {
+	} else if err = client.CreateCluster(spec.Name, specBytes); err != nil {
 		log.Printf("Creation of cluster %s failed\n", spec.Name)
 		chanCreate <- kindClusterCreationResultFailure
 	} else {
@@ -119,19 +108,16 @@ func awaitCluster(client kind.Client, name string, ticker *time.Ticker, chanCrea
 			close(chanWait)
 			return
 		case <-ticker.C:
-			clusters, err := client.GetClusters()
+			clusterHasNodes, err := client.ClusterHasNodes(name)
 			if err != nil {
 				chanWait <- kindClusterCreationResultFailure
 				close(chanWait)
 				return
-			} else {
-				_, ok := clusters[name]
-				if ok {
-					log.Printf("Cluster %s ready\n", name)
-					chanWait <- kindClusterCreationResultSuccess
-					close(chanWait)
-					return
-				}
+			} else if clusterHasNodes {
+				log.Printf("Cluster %s ready\n", name)
+				chanWait <- kindClusterCreationResultSuccess
+				close(chanWait)
+				return
 			}
 			log.Printf("Cluster %s not ready yet\n", name)
 		}

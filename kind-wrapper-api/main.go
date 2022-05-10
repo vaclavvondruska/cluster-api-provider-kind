@@ -19,8 +19,8 @@ const (
 )
 
 func main() {
-	kindClient := kind.NewCLIClient()
 	kubeConfigPath := kubernetes.GetKubeConfigPath()
+	kindClient := kind.NewProviderClient(kubeConfigPath)
 	kindService := service.NewKindService(kindClient, kubeConfigPath)
 
 	host := os.Getenv(apiHostEnvKey)

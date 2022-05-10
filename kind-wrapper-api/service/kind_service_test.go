@@ -23,8 +23,8 @@ func TestKindService(t *testing.T) {
 
 	t.Run("test get cluster state", func(t *testing.T) {
 		mockKindClient := test.NewMockKindClient()
-		mockKindClient.SetDefaultGet(func() (map[string]bool, error) {
-			return map[string]bool{"kind": true, "kind-2": true}, nil
+		mockKindClient.SetDefaultHasNodes(func() (bool, error) {
+			return true, nil
 		})
 		kindService := NewKindService(mockKindClient, kubeConfigPath)
 
@@ -36,14 +36,17 @@ func TestKindService(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, KindClusterStatePending, state.State)
 
+		mockKindClient.SetDefaultHasNodes(func() (bool, error) {
+			return false, nil
+		})
 		_, err = kindService.GetClusterState("kind-3")
 		require.Error(t, err)
 	})
 
 	t.Run("test get cluster state failure", func(t *testing.T) {
 		mockKindClient := test.NewMockKindClient()
-		mockKindClient.SetDefaultGet(func() (map[string]bool, error) {
-			return make(map[string]bool), errors.New("failed to get clusters")
+		mockKindClient.SetDefaultHasNodes(func() (bool, error) {
+			return false, errors.New("failed to get clusters")
 		})
 		kindService := NewKindService(mockKindClient, kubeConfigPath)
 		_, err = kindService.GetClusterState("kind")
@@ -52,17 +55,17 @@ func TestKindService(t *testing.T) {
 
 	t.Run("test cluster creation", func(t *testing.T) {
 		mockKindClient := test.NewMockKindClient()
-		mockKindClient.AddGet(func() (map[string]bool, error) {
-			return make(map[string]bool), nil
+		mockKindClient.AddHasNodes(func() (bool, error) {
+			return false, nil
 		})
-		mockKindClient.AddGet(func() (map[string]bool, error) {
-			return make(map[string]bool), nil
+		mockKindClient.AddHasNodes(func() (bool, error) {
+			return false, nil
 		})
-		mockKindClient.AddGet(func() (map[string]bool, error) {
-			return make(map[string]bool), nil
+		mockKindClient.AddHasNodes(func() (bool, error) {
+			return false, nil
 		})
-		mockKindClient.SetDefaultGet(func() (map[string]bool, error) {
-			return map[string]bool{"kind": true}, nil
+		mockKindClient.SetDefaultHasNodes(func() (bool, error) {
+			return true, nil
 		})
 		mockKindClient.SetCreate(func() error {
 			time.Sleep(3 * time.Second)
@@ -77,17 +80,17 @@ func TestKindService(t *testing.T) {
 
 	t.Run("test get cluster creation failure", func(t *testing.T) {
 		mockKindClient := test.NewMockKindClient()
-		mockKindClient.AddGet(func() (map[string]bool, error) {
-			return make(map[string]bool), nil
+		mockKindClient.AddHasNodes(func() (bool, error) {
+			return false, nil
 		})
-		mockKindClient.AddGet(func() (map[string]bool, error) {
-			return make(map[string]bool), nil
+		mockKindClient.AddHasNodes(func() (bool, error) {
+			return false, nil
 		})
-		mockKindClient.AddGet(func() (map[string]bool, error) {
-			return make(map[string]bool), nil
+		mockKindClient.AddHasNodes(func() (bool, error) {
+			return false, nil
 		})
-		mockKindClient.SetDefaultGet(func() (map[string]bool, error) {
-			return map[string]bool{"kind": true}, nil
+		mockKindClient.AddHasNodes(func() (bool, error) {
+			return true, nil
 		})
 		mockKindClient.SetCreate(func() error {
 			time.Sleep(time.Second)
@@ -99,11 +102,12 @@ func TestKindService(t *testing.T) {
 		err = kindService.CreateCluster(spec)
 		require.Error(t, err)
 
-		mockKindClient.AddGet(func() (map[string]bool, error) {
-			return make(map[string]bool), nil
+		mockKindClient.ClearHasNodesQueue()
+		mockKindClient.AddHasNodes(func() (bool, error) {
+			return false, nil
 		})
-		mockKindClient.AddGet(func() (map[string]bool, error) {
-			return make(map[string]bool), errors.New("failed to get clusters")
+		mockKindClient.AddHasNodes(func() (bool, error) {
+			return false, errors.New("failed to get clusters")
 		})
 		mockKindClient.SetCreate(func() error {
 			time.Sleep(3 * time.Second)

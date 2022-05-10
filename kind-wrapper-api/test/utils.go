@@ -34,17 +34,17 @@ users:
     client-key-data: ""`
 
 type MockKindClient struct {
-	getQueue []func() (map[string]bool, error)
-	defaultGet func() (map[string]bool, error)
+	hasNodesQueue []func() (bool, error)
+	defaultHasNodes func() (bool, error)
 	create func() error
 	delete func() error
 }
 
 func NewMockKindClient() *MockKindClient {
 	return &MockKindClient{
-		getQueue: []func() (map[string]bool, error){},
-		defaultGet: func() (map[string]bool, error) {
-			return make(map[string]bool), nil
+		hasNodesQueue: []func() (bool, error){},
+		defaultHasNodes: func() (bool, error) {
+			return false, nil
 		},
 		create: func() error {
 			return nil
@@ -55,12 +55,16 @@ func NewMockKindClient() *MockKindClient {
 	}
 }
 
-func (m *MockKindClient) AddGet(get func() (map[string]bool, error)) {
-	m.getQueue = append(m.getQueue, get)
+func (m *MockKindClient) AddHasNodes(hasNodes func() (bool, error)) {
+	m.hasNodesQueue = append(m.hasNodesQueue, hasNodes)
 }
 
-func (m *MockKindClient) SetDefaultGet(get func() (map[string]bool, error)) {
-	m.defaultGet = get
+func (m *MockKindClient) ClearHasNodesQueue() {
+	m.hasNodesQueue = []func() (bool, error){}
+}
+
+func (m *MockKindClient) SetDefaultHasNodes(hasNodes func() (bool, error)) {
+	m.defaultHasNodes = hasNodes
 }
 
 func (m *MockKindClient) SetCreate(create func() error) {
@@ -71,7 +75,7 @@ func (m *MockKindClient) SetDelete(delete func() error) {
 	m.delete = delete
 }
 
-func (m *MockKindClient) CreateCluster(_ string) error {
+func (m *MockKindClient) CreateCluster(_ string, _ []byte) error {
 	return m.create()
 }
 
@@ -79,13 +83,13 @@ func (m *MockKindClient) DeleteCluster(_ string) error {
 	return m.delete()
 }
 
-func (m *MockKindClient) GetClusters() (map[string]bool, error) {
-	if len(m.getQueue) > 0 {
-		get := m.getQueue[0]
-		m.getQueue = m.getQueue[1:]
-		return get()
+func (m *MockKindClient) ClusterHasNodes(_ string) (bool, error) {
+	if len(m.hasNodesQueue) > 0 {
+		hasNodes := m.hasNodesQueue[0]
+		m.hasNodesQueue = m.hasNodesQueue[1:]
+		return hasNodes()
 	}
-	return m.defaultGet()
+	return m.defaultHasNodes()
 }
 
 func SetupKubeConfig(dir string, content string) (string, error) {
