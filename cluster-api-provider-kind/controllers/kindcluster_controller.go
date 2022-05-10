@@ -104,9 +104,10 @@ func (r *KindClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 				}
 			}
 			kindCluster.RemoveFinalizer(infrastructurev1alpha1.KindClusterFinalizerName)
+			err := helper.Patch(ctx, &kindCluster)
+			return ctrl.Result{}, err
 		}
-		err = helper.Patch(ctx, &kindCluster)
-		return ctrl.Result{}, err
+		return ctrl.Result{}, nil
 	}
 
 	// Add finalizer if needed

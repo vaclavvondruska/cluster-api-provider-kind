@@ -13,4 +13,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: localhost:5001/capi-provider-kind
-  newTag: 0.1.37
+  newTag: 0.1.38
