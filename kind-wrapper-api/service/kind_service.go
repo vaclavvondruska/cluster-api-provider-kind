@@ -68,7 +68,10 @@ func (s *KindService) DeleteCluster(name string) {
 // A generic error is returned in case the cluster info could not be retrieved
 func (s *KindService) GetClusterState(clusterName string) (KindClusterStatus, error) {
 	clusterHasNodes, err := s.kindClient.ClusterHasNodes(clusterName)
-	if err != nil || !clusterHasNodes {
+	if err != nil {
+		return NewKindClusterStatus(KindClusterStateUnknown, ""), err
+	}
+	if !clusterHasNodes {
 		return NewKindClusterStatus(KindClusterStateUnknown, ""), KindClusterNotFoundError
 	}
 
