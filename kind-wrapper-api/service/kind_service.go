@@ -71,16 +71,18 @@ func (s *KindService) GetClusterState(clusterName string) (KindClusterStatus, er
 	if err != nil {
 		return NewKindClusterStatus(KindClusterStateUnknown, ""), err
 	}
-	if !clusterHasNodes {
-		return NewKindClusterStatus(KindClusterStateUnknown, ""), KindClusterNotFoundError
-	}
-
 	_, clusterConfigs, err := kubernetes.GetKubeContexts(s.kubeConfigPath)
 	if err != nil {
 		return NewKindClusterStatus(KindClusterStateUnknown, ""), err
 	}
-	clusterConfig, ok := clusterConfigs[kindClusterContextName(clusterName)]
-	if !ok {
+
+	clusterConfig, clusterHasConfig := clusterConfigs[kindClusterContextName(clusterName)]
+
+	if !clusterHasNodes && !clusterHasConfig {
+		return NewKindClusterStatus(KindClusterStateUnknown, ""), KindClusterNotFoundError
+	} else if !clusterHasNodes && clusterHasConfig {
+		return NewKindClusterStatus(KindClusterStateFailed, ""), nil
+	} else if clusterHasNodes && !clusterHasConfig {
 		return NewKindClusterStatus(KindClusterStatePending, ""), nil
 	}
 	return NewKindClusterStatus(KindClusterStateRunning, clusterConfig.Server), nil
